@@ -89,8 +89,10 @@ def build_category_values(row):
 
 
 def load_images(images_file=IMAGES_FILE):
-    """Photos trouvées par prepa_images.py : {titre cherché: {image_url, image_author, ...}}."""
-    if not os.path.exists(images_file):
+    """Photos trouvées par prepa_images.py : {titre cherché: {image_url, image_author, ...}}.
+
+    images_file=None ou fichier absent : aucune photo."""
+    if not images_file or not os.path.exists(images_file):
         return {}
     with open(images_file, encoding='utf-8') as json_file:
         return json.load(json_file)
@@ -117,9 +119,10 @@ def build_plant_values(row, images=None):
     return values
 
 
-def setup_database(db_uri=None, data_dir=None, if_empty=False):
+def setup_database(db_uri=None, data_dir=None, if_empty=False, images_file=IMAGES_FILE):
     """Réinitialise la base db_uri et importe les CSV de data_dir via l'ORM.
 
+    images_file : fichier des photos à ajouter aux fiches (None = sans photo).
     Retourne (nombre de catégories, nombre de plantes).
     """
     from sqlalchemy.orm import sessionmaker
@@ -151,7 +154,7 @@ def setup_database(db_uri=None, data_dir=None, if_empty=False):
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
-    images = load_images()
+    images = load_images(images_file)
     session = SessionFactory()
     try:
         # 1. catégories

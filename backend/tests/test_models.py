@@ -1,7 +1,10 @@
 """Tests de la couche modèles : mixins et DAO, sur l'échantillon de 19 fiches."""
+import json
+
 import pytest
 
-from app.models import Plant, PlantORM, RecommendationRunORM
+import prepa_db
+from app.models import Plant, PlantORM, RecommendationRunORM, dispose_engines
 
 
 @pytest.fixture()
@@ -88,6 +91,30 @@ def test_recommendation_run_dao(app):
     assert runs[0].created_at is not None
 
 
-def test_plants_have_no_photo_before_prepa_images(pdao):
-    plant = pdao.findAll()[0]
-    assert plant.image_url is None and plant.image_author is None
+def test_plants_have_no_photo_without_images_file(pdao):
+    assert all(plant.image_url is None for plant in pdao.findAll())
+
+
+def test_photos_are_added_from_the_images_file(tmp_path):
+    photo = {
+        "image_url": "https://exemple.test/tomate.jpg",
+        "image_author": "Une autrice",
+        "image_license": "CC BY-SA 4.0",
+        "image_page_url": "https://exemple.test/page-du-fichier",
+    }
+    images_file = tmp_path / "images.json"
+    images_file.write_text(json.dumps({"Solanum lycopersicum": photo}), encoding="utf-8")
+    db_uri = "sqlite:///" + str(tmp_path / "photos.db").replace("\\", "/")
+
+    prepa_db.setup_database(db_uri=db_uri, data_dir=prepa_db.SAMPLE_DIR, images_file=str(images_file))
+    try:
+        plants = PlantORM(db_uri).findAll()
+        tomatoes = [plant for plant in plants if plant.category.slug == "tomato"]
+        others = [plant for plant in plants if plant.category.slug != "tomato"]
+        # les deux tomates partagent la photo de leur espèce, avec son crédit
+        assert len(tomatoes) == 2
+        assert all(plant.image_url == photo["image_url"] for plant in tomatoes)
+        assert all(plant.image_author == "Une autrice" for plant in tomatoes)
+        assert all(plant.image_url is None for plant in others)
+    finally:
+        dispose_engines()  # libère le fichier SQLite (nécessaire sous Windows)

@@ -1,7 +1,7 @@
 """Tests des petits outils : simplification de texte et titre de page d'une espèce."""
 import pytest
 
-from app.services.images import lookup_title
+from app.services.images import clean_repository_url, lookup_title
 from app.services.text_utils import simplify
 
 
@@ -23,3 +23,15 @@ def test_simplify_removes_case_accents_and_punctuation():
 ])
 def test_lookup_title(scientific_name, expected):
     assert lookup_title(scientific_name) == expected
+
+
+@pytest.mark.parametrize("url, expected", [
+    ("https://github.com/equipe/projet.git\n", "https://github.com/equipe/projet"),
+    ("git@github.com:equipe/projet.git", "https://github.com/equipe/projet"),
+    ("https://jeton-secret@github.com/equipe/projet", "https://github.com/equipe/projet"),
+    ("https://nom:motdepasse@github.com/equipe/projet.git", "https://github.com/equipe/projet"),
+    ("", None),
+    ("pas une adresse", None),
+])
+def test_clean_repository_url_never_keeps_credentials(url, expected):
+    assert clean_repository_url(url) == expected

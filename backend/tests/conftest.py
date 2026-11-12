@@ -12,8 +12,9 @@ def app(tmp_path):
     database_path = str(tmp_path / "test.db").replace("\\", "/")
     db_uri = f"sqlite:///{database_path}"
 
-    # Base de test remplie avec les 19 fiches d'exemple.
-    prepa_db.setup_database(db_uri=db_uri, data_dir=prepa_db.SAMPLE_DIR)
+    # Base de test remplie avec les 19 fiches d'exemple, sans photo : les tests
+    # ne doivent pas dépendre du fichier data/images.json, présent ou non.
+    prepa_db.setup_database(db_uri=db_uri, data_dir=prepa_db.SAMPLE_DIR, images_file=None)
     reset_index_cache()
 
     app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": db_uri})
