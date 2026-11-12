@@ -24,6 +24,14 @@ async function request(path, options = {}) {
   return data;
 }
 
+function post(path, body) {
+  return request(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 export const api = {
   health: () => request("/health"),
   options: () => request("/options"),
@@ -31,11 +39,8 @@ export const api = {
   categories: () => request("/categories"),
   metrics: () => request("/metrics"),
   plant: (id) => request(`/plants/${id}`),
-  plants: (params) => request("/plants?" + new URLSearchParams(params).toString()),
-  recommend: (body) =>
-    request("/recommendations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }),
+  // O1 : retrouver une plante par son nom
+  search: (query, approach, topK) => post("/searches", { query, approach, top_k: topK }),
+  // O2 : des plantes pour un environnement
+  recommend: (criteria, approach, topK) => post("/recommendations", { criteria, approach, top_k: topK }),
 };

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raise a Plant — tableau de bord</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Chart.js : bibliothèque de graphiques, chargée depuis un CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body data-page="dashboard">
+  <header id="site-header"></header>
+  <div id="status-banner" class="banner" hidden></div>
+
+  <main>
+    <div class="view-header">
+      <div>
+        <h2>Tableau de bord : comparaison des deux méthodes</h2>
+        <p class="hint">Temps de réponse et complexité de chaque méthode, pour chacun des deux objectifs, mesurés sur toutes les recherches faites depuis les pages d'accueil.</p>
+      </div>
+      <button type="button" id="dashboard-refresh" class="button">Actualiser</button>
+    </div>
+    <!-- Une carte par méthode, côte à côte (remplies par dashboard.js) -->
+    <div id="dashboard-content" class="dashboard-grid"></div>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

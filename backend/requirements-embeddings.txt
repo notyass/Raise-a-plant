@@ -1,3 +1,0 @@
-# Dépendances de l'approche « embeddings » (installe aussi PyTorch : plusieurs centaines de Mo).
-# Sans elles, l'application fonctionne et l'approche est affichée comme indisponible.
-sentence-transformers>=3.0

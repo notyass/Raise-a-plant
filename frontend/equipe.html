@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raise a Plant — l'équipe</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="team">
+  <header id="site-header"></header>
+  <div id="status-banner" class="banner" hidden></div>
+
+  <main>
+    <section class="panel prose">
+      <h2>L'équipe de développement</h2>
+      <p>Raise a Plant est un projet de SAÉ du BUT 3 Informatique (5.Real.01, 2026-2027), à l'IUT de Villetaneuse, université Sorbonne Paris Nord.</p>
+      <ul class="team-grid">
+        <li class="team-card"><strong>Yacine Raboudi</strong></li>
+        <li class="team-card"><strong>Solène Bourg</strong></li>
+        <li class="team-card"><strong>Faizan Ishaq</strong></li>
+        <li class="team-card"><strong>Antoine Badedji</strong></li>
+        <li class="team-card"><strong>Christophe Félix Lin Huang</strong></li>
+      </ul>
+    </section>
+
+    <section class="panel prose">
+      <h2>Comment ça marche</h2>
+      <p>L'application est découplée : cette interface (HTML, CSS, JavaScript) et le serveur (Python, Flask) sont deux programmes séparés qui communiquent par une API.</p>
+      <h3>Deux méthodes de recommandation</h3>
+      <ul>
+        <li><strong>Heuristique</strong> : des règles « SI… ALORS… » écrites à la main. Une fiche qui ne respecte pas un critère est éliminée. Rapide et sûre, mais rigide.</li>
+        <li><strong>Vectorielle</strong> : chaque fiche est un point dans un espace de nombres, et on garde les fiches les plus proches de la demande. Souple, elle répond toujours, mais sans garantie.</li>
+      </ul>
+      <h3>Données et photos</h3>
+      <p>Les fiches viennent de la <a href="https://github.com/bripatch/plant-variety-database" target="_blank" rel="noopener">Plant Variety Database</a> de <a href="https://plants.windrivergreens.com" target="_blank" rel="noopener">Wind River Greens</a>, sous licence CC BY 4.0. Les types de plantes, les caractéristiques et les conseils sont en français ; les descriptions d'origine restent en anglais.</p>
+      <p>Les photos viennent de <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>. Elles montrent l'espèce, pas forcément la variété exacte ; l'auteur et la licence de chacune sont indiqués sur la page de la plante.</p>
+      <p id="about-version" class="hint"></p>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <script type="module" src="js/layout.js"></script>
+</body>
+</html>

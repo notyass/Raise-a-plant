@@ -5,10 +5,10 @@ __pycache__/
 venv/
 .pytest_cache/
 
-# Base SQLite locale et vecteurs d'embeddings calculés
+# Base SQLite locale
 backend/instance/
 
-# Jeu de données téléchargé par `flask --app run seed` (l'échantillon reste versionné)
+# Jeu de données téléchargé par `python prepa_db.py` (l'échantillon reste versionné)
 backend/data/*.csv
 
 # Secrets et réglages locaux

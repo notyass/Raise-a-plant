@@ -1,43 +1,44 @@
-"""Construit le « document » texte d'une plante.
+"""Prépare une plante pour les méthodes de recommandation.
 
-Les deux approches de recommandation (TF-IDF, puis embeddings en V2)
-travaillent sur du texte. On regroupe donc les champs utiles d'une plante
-dans un seul texte : c'est ce texte qui sera comparé à la requête.
+Les méthodes ne lisent pas la base : elles reçoivent, pour chaque plante,
+  - ses noms (pour la recherche d'une plante, objectif O1) ;
+  - ses caractéristiques normalisées (pour la recherche par environnement, O2).
 """
-
-# Champs texte de la plante recopiés dans le document, dans cet ordre.
-TEXT_FIELDS = (
-    "name",
-    "scientific_name",
-    "description",
-    "sun_requirement",
-    "water_requirement",
-    "soil_type",
-    "growing_difficulty",
-    "growing_season",
-    "sowing_method",
-    "flavor_profile",
-    "culinary_uses",
-)
+from app.services.normalizer import text_to_codes
+from app.services.text_utils import simplify
 
 
-def build_document(plant):
-    """Renvoie le texte décrivant une plante (objet Plant ou équivalent)."""
-    parts = []
+def build_names(plant):
+    """Textes dans lesquels on cherche une plante, simplifiés (minuscules, sans accents).
 
+    Exemple : {"name": "celebrity", "scientific_name": "solanum lycopersicum",
+               "categories": ["tomates", "tomato"]}
+    """
     category = getattr(plant, "category", None)
+    categories = []
     if category is not None:
-        parts.append(category.name)
+        categories = [simplify(category.name), simplify(getattr(category, "name_en", None))]
+    return {
+        "name": simplify(plant.name),
+        "scientific_name": simplify(getattr(plant, "scientific_name", None)),
+        "categories": [text for text in categories if text],
+    }
 
-    for field in TEXT_FIELDS:
-        value = getattr(plant, field, None)
-        if value:
-            parts.append(str(value))
 
-    # Les booléens deviennent des mots, sinon ils seraient invisibles.
-    if getattr(plant, "is_container_friendly", False):
-        parts.append("container friendly")
-    if getattr(plant, "is_heirloom", False):
-        parts.append("heirloom")
+def build_attributes(plant):
+    """Caractéristiques normalisées d'une plante.
 
-    return ". ".join(parts)
+    Exemple : {"category": "herb", "sun": ["partial_shade", "full_sun"],
+               "water": ["low"], "soil": ["sandy", "well_drained"],
+               "season": ["perennial"], "difficulty": ["easy"], "container": True}
+    """
+    category = getattr(plant, "category", None)
+    return {
+        "category": category.slug if category is not None else None,
+        "sun": text_to_codes(getattr(plant, "sun_codes", None)),
+        "water": text_to_codes(getattr(plant, "water_codes", None)),
+        "soil": text_to_codes(getattr(plant, "soil_codes", None)),
+        "season": text_to_codes(getattr(plant, "season_codes", None)),
+        "difficulty": text_to_codes(getattr(plant, "difficulty_codes", None)),
+        "container": bool(getattr(plant, "is_container_friendly", False)),
+    }

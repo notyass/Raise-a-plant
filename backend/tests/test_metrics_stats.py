@@ -1,5 +1,7 @@
 """Tests du calcul des statistiques de temps de réponse."""
-from app.services.metrics_service import compute_stats
+from app.services.MetricsService import MetricsService
+
+compute_stats = MetricsService.computeStats
 
 
 def test_empty_list():

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Raise a Plant — accueil, méthode vectorielle</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Chart.js : bibliothèque de graphiques, chargée depuis un CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<!-- data-approach : la méthode de recommandation utilisée par cette page.
+     index.html est la même page avec l'autre méthode. -->
+<body data-page="home-vector" data-approach="vector" data-twin="index.html">
+  <header id="site-header"></header>
+  <div id="status-banner" class="banner" hidden></div>
+
+  <main>
+    <!-- Méthode utilisée par cette page (rempli par home.js) -->
+    <section id="method-banner" class="method-banner"></section>
+
+    <!-- Objectifs du projet -->
+    <section class="panel prose">
+      <h2>Le projet</h2>
+      <p><strong>Raise a Plant</strong> aide les débutants à réussir leurs plantations. L'application répond à deux besoins :</p>
+      <ul>
+        <li><strong>O1 · Prendre soin d'une plante.</strong> Tu donnes le nom d'une plante, tu reçois sa page avec des conseils d'entretien : lumière, arrosage, terre, saison, difficulté.</li>
+        <li><strong>O2 · Choisir des plantes pour un endroit.</strong> Tu décris ton environnement (lumière, eau, terre…), tu reçois les plantes qui s'y plairont le mieux.</li>
+      </ul>
+      <p>Chaque recherche peut se faire avec deux méthodes de recommandation différentes, une par page d'accueil. Le tableau de bord compare leurs temps de réponse et leur complexité.</p>
+    </section>
+
+    <!-- Les deux barres de recherche -->
+    <div class="search-columns">
+      <form id="care-form" class="panel search-card" novalidate>
+        <h2><span class="objective-tag">O1</span> Prendre soin d'une plante</h2>
+        <p class="hint">Écris le nom d'une plante ou d'un type de plante.</p>
+        <div class="search-bar">
+          <input type="search" name="query" maxlength="80" placeholder="ex. tomate, basil, lavender, rose" aria-label="Nom d'une plante" required>
+          <button type="submit" class="button button-primary">Chercher</button>
+        </div>
+        <small>Les variétés portent leur nom anglais (« basil », « mint ») ; les types de plantes se cherchent aussi en français (« tomate », « rosier »).</small>
+        <p id="care-error" class="error" role="alert" hidden></p>
+      </form>
+
+      <form id="environment-form" class="panel search-card" novalidate>
+        <h2><span class="objective-tag">O2</span> Des plantes pour mon environnement</h2>
+        <p class="hint">Règle les curseurs et, si tu veux, précise le reste.</p>
+        <!-- Curseurs et listes ajoutés ici par home.js à partir de GET /api/options -->
+        <div id="criteria-fields"></div>
+        <div class="field-row">
+          <label class="field">
+            <span>Type de plante</span>
+            <select name="category" id="field-category"><option value="">Peu importe</option></select>
+          </label>
+          <label class="field field-inline">
+            <input type="checkbox" name="container">
+            <span>Culture en pot</span>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit" class="button button-primary">Recommander</button>
+          <button type="reset" class="button">Effacer</button>
+        </div>
+        <p id="environment-error" class="error" role="alert" hidden></p>
+      </form>
+    </div>
+
+    <!-- Résultats de la recherche O2 : liste de fiches cliquables -->
+    <section id="results" class="results" aria-live="polite"></section>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <script type="module" src="js/home.js"></script>
+</body>
+</html>

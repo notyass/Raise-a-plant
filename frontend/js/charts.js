@@ -1,10 +1,10 @@
 // Graphiques Chart.js. Règles suivies :
-//  - une couleur par approche, toujours la même (TF-IDF = bleu, embeddings = orange) ;
+//  - une couleur par méthode, toujours la même (heuristique = orange, vectorielle = bleu) ;
 //  - les textes restent en gris/noir, seules les marques portent la couleur ;
 //  - traits fins, grille discrète, info-bulle au survol.
 import { el } from "./dom.js";
 
-export const SERIES_COLORS = { tfidf: "#2a78d6", embeddings: "#eb6834" };
+export const SERIES_COLORS = { heuristic: "#eb6834", vector: "#2a78d6" };
 const TEXT_SECONDARY = "#52514e";
 const GRID = "#e6e7e1";
 
@@ -52,14 +52,14 @@ function axis(title, extra = {}) {
   };
 }
 
-/** Barres horizontales : score de similarité de chaque plante recommandée. */
+/** Barres horizontales : score de chaque plante recommandée. */
 export function drawScoreChart(canvas, results, approachKey) {
   if (!chartsAvailable()) return null;
   const shorten = (name) => (name.length > 26 ? name.slice(0, 25) + "…" : name);
   const options = baseOptions();
   options.indexAxis = "y";
   options.scales = {
-    x: axis("Score de similarité (cosinus)", { beginAtZero: true }),
+    x: axis("Score (0 à 1)", { beginAtZero: true, max: 1 }),
     y: axis("", { grid: { display: false } }),
   };
   options.plugins.tooltip.callbacks = {
@@ -82,18 +82,18 @@ export function drawScoreChart(canvas, results, approachKey) {
   });
 }
 
-/** Courbe : temps de calcul des dernières recommandations d'une approche. */
+/** Courbe : temps de calcul des dernières recherches d'une méthode. */
 export function drawHistoryChart(canvas, history, approachKey) {
   if (!chartsAvailable()) return null;
   const color = seriesColor(approachKey);
   const options = baseOptions();
   options.interaction = { mode: "index", intersect: false };
   options.scales = {
-    x: axis("Recommandation n°", { grid: { display: false }, ticks: { color: TEXT_SECONDARY, maxTicksLimit: 10 } }),
+    x: axis("Recherche n°", { grid: { display: false }, ticks: { color: TEXT_SECONDARY, maxTicksLimit: 10 } }),
     y: axis("Temps de calcul (ms)", { beginAtZero: true }),
   };
   options.plugins.tooltip.callbacks = {
-    title: (items) => `Recommandation n° ${items[0].label}`,
+    title: (items) => `Recherche n° ${items[0].label}`,
     label: (item) => `Calcul : ${item.parsed.y.toFixed(2)} ms`,
   };
   return new window.Chart(canvas, {

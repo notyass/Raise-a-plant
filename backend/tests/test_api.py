@@ -1,162 +1,201 @@
 """Tests de l'API de bout en bout, sur l'échantillon de 19 fiches."""
 
 
+def recommend(client, criteria, **options):
+    return client.post("/api/recommendations", json={"criteria": criteria, **options})
+
+
+def search(client, query, **options):
+    return client.post("/api/searches", json={"query": query, **options})
+
+
+def names(data):
+    return [result["plant"]["name"] for result in data["results"]]
+
+
+# ----- état, options, plantes -----
+
 def test_health(client):
     data = client.get("/api/health").get_json()
     assert data["status"] == "ok"
     assert data["plant_count"] == 19
 
 
-def test_categories_have_counts(client):
+def test_options_and_approaches(client):
+    options = client.get("/api/options").get_json()
+    assert list(options) == ["sun", "water", "difficulty", "season", "soil"]
+    assert options["sun"]["type"] == "slider" and options["season"]["type"] == "choice"
+
+    data = client.get("/api/approaches").get_json()
+    assert [approach["key"] for approach in data["items"]] == ["heuristic", "vector"]
+    assert list(data["objectives"]) == ["care", "environment"]
+    assert all(set(approach["explanations"]) == {"care", "environment"} for approach in data["items"])
+
+
+def test_categories_have_french_names_and_counts(client):
     items = client.get("/api/categories").get_json()["items"]
     by_slug = {item["slug"]: item for item in items}
     assert by_slug["herb"]["plant_count"] == 3
-    assert by_slug["tomato"]["plant_count"] == 2
+    assert by_slug["herb"]["name"] == "Herbes aromatiques"
 
 
-def test_plants_pagination(client):
+def test_plants_list_with_pagination_and_filters(client):
     data = client.get("/api/plants?per_page=5&page=2").get_json()
-    assert data["total"] == 19
-    assert data["pages"] == 4
-    assert len(data["items"]) == 5
-    assert data["items"][0]["category"]["slug"]
+    assert data["total"] == 19 and data["pages"] == 4 and len(data["items"]) == 5
+    assert client.get("/api/plants?category=herb").get_json()["total"] == 3
+    assert client.get("/api/plants?page=abc").status_code == 400
 
 
-def test_plants_filter_and_search(client):
-    data = client.get("/api/plants?category=herb").get_json()
-    assert data["total"] == 3
-    data = client.get("/api/plants?q=basil").get_json()
-    assert [item["name"] for item in data["items"]] == ["Sweet Basil 'Large Leaf'"]
+def test_plant_page_has_french_labels_and_care_advice(client):
+    plant_id = search(client, "rosemary").get_json()["results"][0]["plant"]["id"]
+    plant = client.get(f"/api/plants/{plant_id}").get_json()
+    assert plant["name"] == "Rosemary 'Upright Blue'"
+    assert plant["category"] == {"slug": "herb", "name": "Herbes aromatiques"}
+    assert plant["labels"] == {
+        "sun": "Plein soleil",
+        "water": "Peu d'eau",
+        "difficulty": "Facile",
+        "season": "Vivace",
+        "soil": "Sableuse ou bien drainée",
+    }
+    care = {item["key"]: item for item in plant["care"]}
+    assert list(care) == ["sun", "water", "soil", "season", "difficulty", "container"]
+    assert care["water"]["advice"] == ["Arrose peu : laisse la terre sécher entre deux arrosages."]
+    assert care["sun"]["detail"] == "Full sun (6-8 hours)"  # texte d'origine conservé
+    assert plant["image_url"] is None  # pas de photo tant que prepa_images.py n'a pas tourné
 
 
-def test_plant_detail_and_404(client):
-    plant_id = client.get("/api/plants?q=aloe").get_json()["items"][0]["id"]
-    assert client.get(f"/api/plants/{plant_id}").get_json()["name"] == "Aloe Vera"
+def test_unknown_plant_returns_404(client):
     response = client.get("/api/plants/99999")
     assert response.status_code == 404
     assert "error" in response.get_json()
 
 
-def test_invalid_page_is_rejected(client):
-    assert client.get("/api/plants?page=abc").status_code == 400
-    assert client.get("/api/plants?page=0").status_code == 400
+# ----- O1 : retrouver une plante par son nom -----
 
-
-def test_options_and_approaches(client):
-    options = client.get("/api/options").get_json()
-    assert set(options) == {"sun", "water", "soil", "season", "difficulty"}
-    approaches = client.get("/api/approaches").get_json()["items"]
-    assert [(a["key"], a["available"]) for a in approaches] == [("tfidf", True), ("embeddings", True)]
-    assert all(a["explanation"] and a["complexity"] for a in approaches)
-
-
-def test_recommendation(client):
-    response = client.post(
-        "/api/recommendations",
-        json={"criteria": {"water": "low", "season": "perennial"}, "top_k": 3},
-    )
+def test_search_with_the_heuristic_method(client):
+    response = search(client, "Basil")
     assert response.status_code == 201
     data = response.get_json()
-    assert data["approach"]["key"] == "tfidf"
+    assert data["objective"] == "care"
+    assert data["approach"]["key"] == "heuristic"
+    assert names(data) == ["Sweet Basil 'Large Leaf'"]
+    assert data["results"][0]["matched_terms"][0]["term"] == "Un mot du nom commence par la recherche"
+    assert data["timing"]["total_ms"] >= data["timing"]["algo_ms"] >= 0
+
+
+def test_search_by_french_plant_type(client):
+    data = search(client, "tomate").get_json()
+    assert data["count"] == 2
+    assert {result["plant"]["category"]["slug"] for result in data["results"]} == {"tomato"}
+
+
+def test_only_the_vector_method_tolerates_a_typo(client):
+    assert search(client, "rosemarry", approach="heuristic").get_json()["count"] == 0
+    data = search(client, "rosemarry", approach="vector").get_json()
+    assert data["approach"]["key"] == "vector"
+    assert names(data)[0] == "Rosemary 'Upright Blue'"
+
+
+def test_search_errors(client):
+    assert search(client, "").status_code == 400
+    assert search(client, None).status_code == 400
+    assert search(client, "basil", approach="inconnue").status_code == 400
+    assert search(client, "basil", top_k=0).status_code == 400
+
+
+# ----- O2 : plantes pour un environnement -----
+
+def test_recommend_with_the_heuristic_method(client):
+    response = recommend(client, {"sun": 100, "water": 10, "season": "perennial"}, top_k=5)
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["objective"] == "environment"
+    assert data["approach"]["key"] == "heuristic"
+    assert data["query_text"] == "Lumière : plein soleil (100 %) · Eau : peu d'eau (10 %) · Saison : vivace"
     assert data["corpus_size"] == 19
-    assert 1 <= data["count"] <= 3
-    names = [result["plant"]["name"] for result in data["results"]]
-    assert "Rosemary 'Upright Blue'" in names
+    # filtres stricts : une seule fiche respecte les trois critères
+    assert names(data) == ["Rosemary 'Upright Blue'"]
+    assert data["results"][0]["score"] == 1.0
+    assert sum(item["weight"] for item in data["results"][0]["matched_terms"]) == 1.0
+
+
+def test_recommend_with_the_vector_method_always_answers(client):
+    criteria = {"sun": 100, "water": 10, "season": "perennial"}
+    data = recommend(client, criteria, approach="vector", top_k=5).get_json()
+    assert data["approach"]["key"] == "vector"
+    assert data["count"] == 5  # les 5 fiches les plus proches, même imparfaites
+    assert names(data)[0] == "Rosemary 'Upright Blue'"
     scores = [result["score"] for result in data["results"]]
     assert scores == sorted(scores, reverse=True)
-    assert data["results"][0]["matched_terms"]
-    assert data["timing"]["algo_ms"] >= 0
-    assert data["timing"]["total_ms"] >= data["timing"]["algo_ms"]
+    assert 0 < scores[-1] < scores[0] <= 1
 
 
-def test_recommendation_with_category_filter(client):
-    data = client.post(
-        "/api/recommendations",
-        json={"criteria": {"category": "lettuce", "sun": "full_sun"}},
-    ).get_json()
-    assert data["count"] == 2
-    assert {result["plant"]["category"]["slug"] for result in data["results"]} == {"lettuce"}
+def test_too_strict_a_request_separates_the_two_methods(client):
+    criteria = {"sun": 0, "water": 0, "difficulty": "difficult"}
+    assert recommend(client, criteria, approach="heuristic").get_json()["count"] == 0
+    assert recommend(client, criteria, approach="vector").get_json()["count"] == 10
+
+
+def test_both_methods_receive_the_same_request(client):
+    criteria = {"sun": 70, "difficulty": "easy"}
+    heuristic = recommend(client, criteria, approach="heuristic").get_json()
+    vector = recommend(client, criteria, approach="vector").get_json()
+    assert heuristic["query_text"] == vector["query_text"] == "Lumière : plein soleil (70 %) · Difficulté : facile"
+    assert heuristic["criteria"] == vector["criteria"]
+
+
+def test_category_filters_both_methods(client):
+    for approach in ("heuristic", "vector"):
+        data = recommend(client, {"category": "lettuce", "sun": 100}, approach=approach).get_json()
+        assert data["count"] == 2
+        assert {result["plant"]["category"]["slug"] for result in data["results"]} == {"lettuce"}
 
 
 def test_recommendation_errors(client):
-    assert client.post("/api/recommendations", json={"criteria": {}}).status_code == 400
-    assert client.post("/api/recommendations", json={"criteria": {"sun": "lune"}}).status_code == 400
-    assert client.post("/api/recommendations", json={"criteria": {"category": "inconnue"}}).status_code == 400
-    assert client.post("/api/recommendations", json={"criteria": {"sun": "shade"}, "top_k": 0}).status_code == 400
-    assert (
-        client.post(
-            "/api/recommendations", json={"criteria": {"sun": "shade"}, "approach": "inconnue"}
-        ).status_code
-        == 400
-    )
+    assert recommend(client, {}).status_code == 400
+    assert recommend(client, {"sun": 150}).status_code == 400
+    assert recommend(client, {"season": "mousson"}).status_code == 400
+    assert recommend(client, {"category": "inconnue"}).status_code == 400
+    assert recommend(client, {"sun": 50}, top_k=0).status_code == 400
+    assert recommend(client, {"sun": 50}, approach="inconnue").status_code == 400
     assert client.post("/api/recommendations", data="pas du json").status_code == 400
 
 
-def test_metrics_after_recommendations(client):
+# ----- tableau de bord -----
+
+def test_metrics_by_method_and_objective(client):
     for _ in range(3):
-        client.post("/api/recommendations", json={"criteria": {"difficulty": "easy"}})
-    data = client.get("/api/metrics").get_json()
-    tfidf = next(a for a in data["approaches"] if a["key"] == "tfidf")
-    assert tfidf["algo_ms"]["count"] == 3
-    assert tfidf["algo_ms"]["min"] <= tfidf["algo_ms"]["mean"] <= tfidf["algo_ms"]["max"]
-    assert len(tfidf["history"]) == 3
-    assert tfidf["index"]["documents"] == 19
-    embeddings = next(a for a in data["approaches"] if a["key"] == "embeddings")
-    assert embeddings["algo_ms"]["count"] == 0
-    assert embeddings["index"] is None  # jamais utilisée : index pas encore construit
-
-
-def test_recommendation_with_embeddings(client):
-    response = client.post(
-        "/api/recommendations",
-        json={
-            "criteria": {"water": "low", "season": "perennial", "category": "herb"},
-            "approach": "embeddings",
-            "top_k": 5,
-        },
-    )
-    assert response.status_code == 201
-    data = response.get_json()
-    assert data["approach"]["key"] == "embeddings"
-    assert data["count"] == 3  # la catégorie « herb » ne contient que 3 fiches
-    assert {result["plant"]["category"]["slug"] for result in data["results"]} == {"herb"}
-    scores = [result["score"] for result in data["results"]]
-    assert scores == sorted(scores, reverse=True)
-    # L'explication reprend les libellés français des critères.
-    labels = {item["term"] for item in data["results"][0]["matched_terms"]}
-    assert labels == {"Herb", "Peu d'eau", "Vivace (repousse chaque année)"}
-
-
-def test_both_approaches_receive_the_same_query(client):
-    body = {"criteria": {"sun": "full_sun", "difficulty": "easy"}}
-    tfidf = client.post("/api/recommendations", json={**body, "approach": "tfidf"}).get_json()
-    embeddings = client.post("/api/recommendations", json={**body, "approach": "embeddings"}).get_json()
-    assert tfidf["query_text"] == embeddings["query_text"] == "full sun, easy"
+        recommend(client, {"sun": 100}, approach="heuristic")
+    recommend(client, {"sun": 0, "water": 0}, approach="heuristic")  # aucun résultat
+    recommend(client, {"sun": 100}, approach="vector")
+    search(client, "basil", approach="vector")
 
     data = client.get("/api/metrics").get_json()
-    counts = {a["key"]: a["algo_ms"]["count"] for a in data["approaches"]}
-    assert counts == {"tfidf": 1, "embeddings": 1}
-    embeddings_index = next(a for a in data["approaches"] if a["key"] == "embeddings")["index"]
-    assert embeddings_index["documents"] == 19
-    assert embeddings_index["dimensions"] == 256
+    by_key = {approach["key"]: approach for approach in data["approaches"]}
+    assert list(by_key) == ["heuristic", "vector"]
+
+    heuristic = by_key["heuristic"]["objectives"]
+    assert heuristic["environment"]["algo_ms"]["count"] == 4
+    assert heuristic["environment"]["empty_count"] == 1
+    assert len(heuristic["environment"]["history"]) == 4
+    assert heuristic["care"]["algo_ms"]["count"] == 0
+    assert by_key["heuristic"]["index"]["documents"] == 19
+
+    vector = by_key["vector"]["objectives"]
+    assert vector["environment"]["algo_ms"]["count"] == 1
+    assert vector["care"]["algo_ms"]["count"] == 1
+    assert by_key["vector"]["index"]["dimensions"] == 13
 
 
-def test_embeddings_unavailable_without_library(app, client, monkeypatch):
-    from app.services.recommenders import EmbeddingRecommender
+def test_metrics_before_any_search(client):
+    data = client.get("/api/metrics").get_json()
+    for approach in data["approaches"]:
+        assert approach["index"] is None
+        assert all(measures["algo_ms"]["count"] == 0 for measures in approach["objectives"].values())
 
-    app.config["EMBEDDING_ENCODER"] = None
-    monkeypatch.setattr(
-        EmbeddingRecommender, "unavailable_reason", classmethod(lambda cls: "bibliothèque absente")
-    )
-    approaches = client.get("/api/approaches").get_json()["items"]
-    embeddings = next(a for a in approaches if a["key"] == "embeddings")
-    assert embeddings["available"] is False
-    assert embeddings["unavailable_reason"] == "bibliothèque absente"
-    response = client.post(
-        "/api/recommendations", json={"criteria": {"sun": "shade"}, "approach": "embeddings"}
-    )
-    assert response.status_code == 503
 
+# ----- divers -----
 
 def test_cors_header_for_allowed_origin(client):
     response = client.get("/api/health", headers={"Origin": "http://localhost:8080"})

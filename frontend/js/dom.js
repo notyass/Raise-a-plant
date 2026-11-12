@@ -23,6 +23,15 @@ export function clear(node) {
   return node;
 }
 
+/** Ajoute des enfants à un élément en ignorant les valeurs vides (null, false). */
+export function appendAll(node, ...children) {
+  for (const child of children.flat()) {
+    if (child === null || child === undefined || child === false) continue;
+    node.append(child);
+  }
+  return node;
+}
+
 /** Affiche une durée en millisecondes : 0.42 ms, 12.3 ms, 1 250 ms */
 export function formatMs(value) {
   if (value === null || value === undefined) return "—";

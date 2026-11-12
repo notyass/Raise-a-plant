@@ -1,6 +1,11 @@
 """Configuration de l'application, lue depuis les variables d'environnement."""
 import os
 
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Le dossier « instance » contient la base SQLite.
+INSTANCE_DIR = os.path.join(BACKEND_DIR, 'instance')
+DATABASE_PATH = os.path.join(INSTANCE_DIR, 'plante.db')
+
 # Origines du frontend autorisées en développement :
 # 8080 = `python -m http.server 8080`, 5500 = extension Live Server de VS Code.
 _DEFAULT_ORIGINS = (
@@ -12,27 +17,17 @@ _DEFAULT_ORIGINS = (
 class Config:
     # SQLite par défaut (fichier backend/instance/plante.db).
     # Avec Docker, DATABASE_URL pointe vers PostgreSQL.
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///plante.db")
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///' + DATABASE_PATH)
 
     CORS_ORIGINS = [
         origin.strip()
-        for origin in os.environ.get("CORS_ORIGINS", _DEFAULT_ORIGINS).split(",")
+        for origin in os.environ.get('CORS_ORIGINS', _DEFAULT_ORIGINS).split(',')
         if origin.strip()
     ]
 
     # Recommandation
     DEFAULT_TOP_K = 10
     MAX_TOP_K = 50
-
-    # Approche embeddings : modèle de langage utilisé (nom sur Hugging Face).
-    # Variante multilingue, plus lente mais qui comprend des mots-clés en
-    # français : sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
-    EMBEDDING_MODEL = os.environ.get(
-        "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
-    )
-    # Les tests remplacent le vrai modèle par une fonction légère (voir tests/).
-    EMBEDDING_ENCODER = None
 
     # Catalogue
     DEFAULT_PER_PAGE = 24
