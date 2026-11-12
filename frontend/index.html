@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plante ton gramme — recommandation comparée de plantations</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Chart.js : bibliothèque de graphiques, chargée depuis un CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <h1>Plante ton gramme</h1>
+      <p class="tagline">« Pourquoi acheter un 10, quand tu peux en faire pousser dix ? »</p>
+    </div>
+    <nav class="tabs" aria-label="Navigation principale">
+      <button type="button" class="tab is-active" data-view="recommend">Recommander</button>
+      <button type="button" class="tab" data-view="dashboard">Tableau de bord</button>
+      <button type="button" class="tab" data-view="catalogue">Catalogue</button>
+      <button type="button" class="tab" data-view="about">À propos</button>
+    </nav>
+  </header>
+
+  <div id="status-banner" class="banner" hidden></div>
+
+  <main>
+    <!-- ====== Vue 1 : recommandation ====== -->
+    <section id="view-recommend" class="view">
+      <div class="two-columns">
+        <form id="recommend-form" class="panel" novalidate>
+          <h2>Ta plantation</h2>
+          <p class="hint">Décris tes conditions : on te propose les plantes qui leur correspondent le mieux.</p>
+
+          <label class="field">
+            <span>Type de plante</span>
+            <select name="category" id="field-category">
+              <option value="">Peu importe</option>
+            </select>
+          </label>
+
+          <!-- Les critères (soleil, eau, terre, saison, niveau) sont ajoutés ici
+               par recommend.js à partir de GET /api/options -->
+          <div id="criteria-fields"></div>
+
+          <label class="field field-inline">
+            <input type="checkbox" name="container">
+            <span>Culture en pot ou sur balcon</span>
+          </label>
+
+          <label class="field">
+            <span>Mots-clés (en anglais, facultatif)</span>
+            <input type="text" name="keywords" maxlength="200" placeholder="ex. salad, pesto, fast growing">
+            <small>Les fiches du jeu de données sont en anglais.</small>
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Approche</span>
+              <select name="approach" id="field-approach"></select>
+            </label>
+            <label class="field">
+              <span>Nombre de résultats</span>
+              <input type="number" name="top_k" min="1" max="50" value="10">
+            </label>
+          </div>
+
+          <small id="approach-note" hidden></small>
+
+          <div class="actions">
+            <button type="submit" class="button button-primary">Recommander</button>
+            <button type="reset" class="button">Effacer</button>
+          </div>
+          <p id="recommend-status" class="hint status" role="status" hidden></p>
+          <p id="recommend-error" class="error" role="alert" hidden></p>
+        </form>
+
+        <div id="recommend-output" class="output">
+          <p class="placeholder">Remplis le formulaire puis clique sur « Recommander ».</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== Vue 2 : tableau de bord ====== -->
+    <section id="view-dashboard" class="view" hidden>
+      <div class="view-header">
+        <div>
+          <h2>Tableau de bord des approches</h2>
+          <p class="hint">Temps de réponse et complexité de chaque approche de recommandation, mesurés sur toutes les recommandations demandées.</p>
+        </div>
+        <button type="button" id="dashboard-refresh" class="button">Actualiser</button>
+      </div>
+      <div id="dashboard-content" class="dashboard-grid"></div>
+    </section>
+
+    <!-- ====== Vue 3 : catalogue ====== -->
+    <section id="view-catalogue" class="view" hidden>
+      <div class="view-header">
+        <div>
+          <h2>Catalogue des plantes</h2>
+          <p class="hint" id="catalogue-count"></p>
+        </div>
+        <form id="catalogue-filters" class="filters">
+          <select name="category" id="catalogue-category" aria-label="Type de plante">
+            <option value="">Tous les types</option>
+          </select>
+          <input type="search" name="q" placeholder="Rechercher un nom" aria-label="Rechercher un nom">
+          <button type="submit" class="button">Filtrer</button>
+        </form>
+      </div>
+      <div id="catalogue-grid" class="card-grid"></div>
+      <div id="catalogue-pagination" class="pagination"></div>
+    </section>
+
+    <!-- ====== Vue 4 : à propos ====== -->
+    <section id="view-about" class="view" hidden>
+      <div class="panel prose">
+        <h2>À propos</h2>
+        <p><strong>Plante ton gramme</strong> aide les débutants à choisir quoi planter selon leurs conditions (soleil, eau, terre, saison). L'application compare deux approches de recommandation et affiche leurs différences : résultats, temps de réponse, complexité.</p>
+        <p>Projet de SAÉ BUT3 Informatique 5.Real.01 (2026-2027), IUT de Villetaneuse.</p>
+        <h3>Équipe</h3>
+        <p>Yacine Raboudi, Solène Bourg, Faizan Ishaq, Antoine Badedji, Christophe Félix Lin Huang.</p>
+        <h3>Approches</h3>
+        <ul>
+          <li><strong>TF-IDF + cosinus</strong> : compare les mots de ta demande à ceux des fiches.</li>
+          <li><strong>Embeddings + cosinus</strong> : un modèle de langage compare le sens des textes plutôt que les mots exacts.</li>
+        </ul>
+        <h3>Données</h3>
+        <p>Les fiches viennent de la <a href="https://huggingface.co/datasets/WindRiverGreens/plant-variety-database" target="_blank" rel="noopener">Plant Variety Database</a> de <a href="https://plants.windrivergreens.com" target="_blank" rel="noopener">Wind River Greens</a>, sous licence CC BY 4.0.</p>
+        <p id="about-version" class="hint"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    Données : <a href="https://plants.windrivergreens.com" target="_blank" rel="noopener">Wind River Greens</a> (CC BY 4.0)
+  </footer>
+
+  <!-- Fiche détaillée d'une plante -->
+  <dialog id="plant-dialog">
+    <form method="dialog" class="dialog-close"><button class="button" aria-label="Fermer">Fermer</button></form>
+    <div id="plant-dialog-content"></div>
+  </dialog>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

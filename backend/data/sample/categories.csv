@@ -1,0 +1,13 @@
+id,slug,name,plural_name,parent_category,description,url
+1,tomato,Tomato,Tomatoes,,"Slicing, paste and cherry tomatoes.",
+2,pepper,Pepper,Peppers,,Sweet and hot peppers.,
+3,lettuce,Lettuce,Lettuces,,"Leaf, butterhead and romaine lettuces and other salad greens.",
+4,herb,Herb,Herbs,,Culinary and aromatic herbs.,
+5,root-vegetable,Root Vegetable,Root Vegetables,,"Carrots, radishes, beets and other root crops.",
+6,bean,Bean,Beans,,Bush and pole beans.,
+7,cucumber,Cucumber,Cucumbers,,Slicing and pickling cucumbers.,
+8,squash,Squash,Squashes,,"Summer and winter squashes, zucchini and pumpkins.",
+9,allium,Allium,Alliums,,"Onions, garlic, leeks, shallots, and chives.",
+10,berry,Berry,Berries,,"Strawberries, raspberries and other small fruits.",
+11,flower,Flower,Flowers,,Annual and perennial garden flowers.,
+12,succulent,Succulent,Succulents,,Drought-tolerant plants that store water in their leaves.,

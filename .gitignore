@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Base SQLite locale et vecteurs d'embeddings calculés
+backend/instance/
+
+# Jeu de données téléchargé par `flask --app run seed` (l'échantillon reste versionné)
+backend/data/*.csv
+
+# Secrets et réglages locaux
+.env
+
+# Éditeurs
+.vscode/
+.idea/
