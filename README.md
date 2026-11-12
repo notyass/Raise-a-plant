@@ -1,4 +1,4 @@
-# Plante ton gramme
+# Raise a Plant
 
 > « Pourquoi acheter un 10, quand tu peux en faire pousser dix ? »
 
@@ -23,7 +23,7 @@ Christophe Félix Lin Huang.
 ## Architecture
 
 ```
-plante-ton-gramme/
+plante-ton-gramme/           (le dossier garde son ancien nom)
 ├── backend/                  API JSON (Python, Flask)
 │   ├── run.py                point d'entrée
 │   ├── app/
